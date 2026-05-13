@@ -16,11 +16,16 @@ def get_map(filename):
     return maze
 
 # public interface for creating a new map, which generates a maze and saves it to file
-def create_map(rows, cols, isSave = True, seed = None, map_type = MAP_TYPES[0]):
-    maze = generate_map(rows, cols, seed, map_type)
+def create_map(rows, cols, isSave = True, seed = None, map_type = MAP_TYPES[0], num_lights = 1):
+    maze = generate_map(
+        rows = rows,
+        cols = cols,
+        seed = seed,
+        map_type = map_type,
+        num_lights = num_lights
+    )
 
     if isSave:
-
         index = 0
 
         while True:
@@ -92,29 +97,23 @@ def convert_to_lines(map_data):
 
     return lines
 
-# maze generation algorithms
-def generate_map(rows, cols, seed=None, map_type=MAP_TYPES[0]):
-
+# maze generation algorithms using DFS with backtracking, with optional random seed and map type (for lights)
+def generate_map(rows, cols, seed = None, map_type = MAP_TYPES[0], num_lights = 1):
     if seed is not None:
         random.seed(seed)
 
     maze = Maze(rows, cols)
 
-    # choose start and goal
     start_cell = maze.get_cell(0, 0)
     goal_cell = maze.get_cell(rows - 1, cols - 1)
 
     start_cell.tileType = TileType.START
     goal_cell.tileType = TileType.GOAL
 
-    # DFS stack
-    current = start_cell
-    current.isVisited = True
-
-    stack = [current]
+    start_cell.isVisited = True
+    stack = [start_cell]
 
     while stack:
-
         current = stack[-1]
 
         unvisited = maze.get_unvisited_neighbours(current)
@@ -126,29 +125,30 @@ def generate_map(rows, cols, seed=None, map_type=MAP_TYPES[0]):
 
             next_cell.isVisited = True
             stack.append(next_cell)
-
         else:
             stack.pop()
 
-    # optional special tiles
-    available_tiles = []
+    for row in range(rows):
+        for col in range(cols):
+            maze.get_cell(row, col).isVisited = False
+
+    available_cells = []
 
     for row in range(rows):
         for col in range(cols):
             cell = maze.get_cell(row, col)
 
             if cell.tileType == TileType.PATH:
-                available_tiles.append(cell)
+                available_cells.append(cell)
 
-    if TileType.LIGHT in map_type and available_tiles:
-        light_cell = random.choice(available_tiles)
-        light_cell.tileType = TileType.LIGHT
-        available_tiles.remove(light_cell)
+    random.shuffle(available_cells)
 
-    if TileType.REWARD in map_type and available_tiles:
-        reward_cell = random.choice(available_tiles)
-        reward_cell.tileType = TileType.REWARD
-        available_tiles.remove(reward_cell)
+    if TileType.LIGHT in map_type:
+        actual_num_lights = min(num_lights, len(available_cells))
+
+        for _ in range(actual_num_lights):
+            cell = available_cells.pop()
+            cell.tileType = TileType.LIGHT
 
     return maze
 

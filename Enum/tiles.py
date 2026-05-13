@@ -5,4 +5,3 @@ class TileType(Enum):
     GOAL = 1
     PATH = 2
     LIGHT = 3
-    REWARD = 4
